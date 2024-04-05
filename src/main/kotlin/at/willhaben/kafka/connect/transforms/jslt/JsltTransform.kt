@@ -186,8 +186,16 @@ abstract class JsltTransform<R : ConnectRecord<R>?> : Transformation<R> {
             JsonNodeType.NUMBER -> getNumberValue(jsonNode)
             JsonNodeType.POJO, JsonNodeType.OBJECT -> {
                 val subStruct = Struct(schema)
-                jsonNode.fields().forEach { (key, field) ->
-                    jsonNodeToStruct(field, schema!!.field(key).schema(), subStruct, key)
+                val fieldsIterator = jsonNode.fields()
+                if (fieldsIterator.hasNext()) {
+                    fieldsIterator.forEach { (key, field) ->
+                        jsonNodeToStruct(field, schema!!.field(key).schema(), subStruct, key)
+                    }
+                } else {
+                    // If there are no fields, return an empty Struct with the provided schema.
+                    schema!!.fields().forEach { field ->
+                        subStruct.put(field, null)
+                    }
                 }
                 subStruct
             }
