@@ -257,6 +257,7 @@ class JsltTransformTest {
             )
             .put("bytes", "ExampleBytes".toByteArray())
 
+        println("The Value $givenValue")
         val given = SourceRecord(
             null,
             null,
@@ -428,13 +429,14 @@ class JsltTransformTest {
         val actualArrayOfRecordArrayItem1 = actualArrayOfRecordArray[0][0]
         val actualArrayOfRecordArrayItem2 = actualArrayOfRecordArray[0][1]
         val actualArrayOfRecordArrayItem3 = actualArrayOfRecordArray[1][0]
-        assertEquals(
-            expectedArrayRecord1.getInt32("int32Value"),
-            actualArrayOfRecordArrayItem1.getInt32("int32Value")
-        )
+
         assertEquals(
             expectedArrayRecord1.getString("stringValue"),
             actualArrayOfRecordArrayItem1.getString("stringValue")
+        )
+        assertEquals(
+            expectedArrayRecord1.getInt32("int32Value"),
+            actualArrayOfRecordArrayItem1.getInt32("int32Value")
         )
         assertEquals(
             expectedArrayRecord2.getInt32("int32Value"),
@@ -628,6 +630,44 @@ class JsltTransformTest {
         assertNotNull(actual)
         assertNotNull(actual.getStruct("nestedObject"))
         assertEquals(emptyList<String>(),  actual.getStruct("nestedObject").getArray<String>("emptyArrayField"))
+    }
+
+    @Test
+    fun weirdStructIssue() {
+        // given
+        val givenJsltTransformation = """
+            {
+                "value": from-json(.value)
+            }
+        """.trimIndent()
+        configureNonTransformJslt(xformValue, givenJsltTransformation)
+
+        val givenInputSchema = SchemaBuilder
+            .struct()
+            .field("value", SchemaBuilder.string())
+
+        val givenInputData = Struct(givenInputSchema)
+            .put("value", """{    
+                "lineItems": [ {"item": { "itemType": "a",  "specifiedProperties": {
+                                "maxParam": 0.55
+                            }
+                        }                        
+                    },
+                    {                        
+                        "item": {                
+                            "itemType": "b"                
+                        }
+                    }
+                ]
+            }"""
+        )
+
+        // when
+        val actual: Struct = xformValue.apply(SourceRecord(null, null, "someTopic", 0,
+            givenInputSchema, givenInputData)).value() as Struct
+
+        // then
+        assertNotNull(actual)
     }
 
     @Test

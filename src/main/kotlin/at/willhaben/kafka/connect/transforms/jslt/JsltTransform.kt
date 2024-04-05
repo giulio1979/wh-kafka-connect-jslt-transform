@@ -224,13 +224,18 @@ abstract class JsltTransform<R : ConnectRecord<R>?> : Transformation<R> {
             } else if (field.value.nodeType == JsonNodeType.OBJECT || field.value.nodeType == JsonNodeType.POJO) {
                 schemaBuilder.field(field.key, schemaFromJsonObject(field.value))
             } else {
-                schemaBuilder.field(field.key, getPrimitiveType(field.value))
+                schemaBuilder.field(field.key, getPrimitiveType(field.value)).optional()
             }
         }
         return schemaBuilder.build()
     }
-
+    fun deepMerge(original: JsonNode, update: JsonNode): JsonNode {
+        val objectMapper = ObjectMapper()
+        // readerForUpdating creates a new reader that will update the passed original node
+        return objectMapper.readerForUpdating(original).readTree(update.toString())
+    }
     private fun schemaFromJsonArray(jsonNode: JsonNode): Schema {
+
         return if (jsonNode.elements().hasNext()) {
             val element = jsonNode.elements().next()
             if (element.nodeType == JsonNodeType.OBJECT || element.nodeType == JsonNodeType.POJO) {
